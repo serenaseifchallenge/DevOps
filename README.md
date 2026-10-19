@@ -1,4 +1,4 @@
-## Comment lancer chaque partie
+# TP1
 
 ### Database (`database/`)
 
@@ -218,3 +218,20 @@ Elles peuvent être récupérées sur n'importe quelle machine avec `docker pull
 - Déploiement : un serveur ou un pipeline CI/CD peut télécharger et lancer directement l'image. C'est exactement la même partout, ce qui évite le « ça marche sur ma machine ».
 - Versioning : grâce aux tags, on garde un historique des versions et on peut revenir à une version précédente en cas de problème.
 - Sauvegarde : les images ne dépendent plus d'une seule machine locale.
+
+# TP2
+
+2-1 What are testcontainers?
+
+Testcontainers sont des bibliothèques Java qui permettent d'exécuter plusieurs conteneurs Docker pendant les tests
+
+2-2 For what purpose do we need to use secured variables?
+
+Le pipeline a besoin de nos identifiants Docker Hub pour publier les images. Les écrire directement dans le main.yml les rendrait visibles par toute personne ayant accès au dépôt, et ils resteraient dans l'historique Git même après suppression. Sur un dépôt public, n'importe qui pourrait alors publier des images à notre place. Les secrets GitHub résolvent ce problème, ils sont chiffrés et stockés par GitHub
+
+2-3 Why did we put `needs: build-and-test-backend` on this job? 
+
+Dans notre workflow, le job de tests s'appelle `test-backend`, donc la ligne est `needs: test-backend`.
+
+Par défaut, GitHub Actions lance tous les jobs d'un workflow en parallèle. Sans needs, le job build-and-push-docker-image démarrerait en même temps que test-backend, sans attendre son résultat. Les images Docker seraient alors construites et publiées même si la compilation ou les tests échouent.
+
