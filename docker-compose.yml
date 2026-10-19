@@ -3,9 +3,11 @@ services:
     build: ./backend/simpleapi
     container_name: simple-api
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - app-network
       - db-network
@@ -35,6 +37,9 @@ services:
   httpd:
     build: ./http-server
     container_name: httpd
+    environment:
+      BACKEND_HOST: ${BACKEND_HOST}
+      BACKEND_PORT: ${BACKEND_PORT}
     ports:
       - "80:80"
     networks:
