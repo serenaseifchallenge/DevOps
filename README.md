@@ -235,3 +235,10 @@ Dans notre workflow, le job de tests s'appelle `test-backend`, donc la ligne est
 
 Par défaut, GitHub Actions lance tous les jobs d'un workflow en parallèle. Sans needs, le job build-and-push-docker-image démarrerait en même temps que test-backend, sans attendre son résultat. Les images Docker seraient alors construites et publiées même si la compilation ou les tests échouent.
 
+2-4 For what purpose do we need to push docker images?
+
+Les publier sur Docker Hub permet de :
+- Continuous Delivery : chaque commit validé sur `main` produit une nouvelle version de l'application, prête à être déployée
+- Déployer partout : N'importe qui récupère l'image avec docker pull, sans avoir le code source ni devoir rebuild
+- Garantir que ce qui est déployé a été testé : grâce à needs: test-backend, seules les versions dont les tests passent sont publiées
+- Garder un historique des versions, et pouvoir revenir à une image précédente en cas de problème
