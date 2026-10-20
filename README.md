@@ -242,3 +242,7 @@ Les publier sur Docker Hub permet de :
 - Déployer partout : N'importe qui récupère l'image avec docker pull, sans avoir le code source ni devoir rebuild
 - Garantir que ce qui est déployé a été testé : grâce à needs: test-backend, seules les versions dont les tests passent sont publiées
 - Garder un historique des versions, et pouvoir revenir à une image précédente en cas de problème
+
+Bonus TP2 : 
+
+Proteger la branche main

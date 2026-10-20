@@ -1,70 +1,110 @@
 name: CI devops 2025
+
+# Déclencheurs du pipeline
 on:
-  #to begin you want to launch this job in main and develop
   push:
-    branches: 
+    # Branches surveillées
+    branches:
       - main
       - dev
+    # Tags de version pour publier une version officielle
+    tags:
+      - 'v*'
   pull_request:
 
 jobs:
-  test-backend: 
+  # Job 1 : compiler, tester et analyser la qualité du backend
+  test-backend:
     runs-on: ubuntu-24.04
     steps:
-     #checkout your github code using actions/checkout@v4
+      # Récupère le code du dépôt
       - uses: actions/checkout@v4
-     #do the same with another action (actions/setup-java@v4) that enable to setup jdk 21
+
+      # Installe Java 21 (Temurin)
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-     #finally build your app with the latest command
+      # Compile et lance les tests unitaires + d'intégration (Testcontainers)
       - name: Build and test with Maven
         run: mvn clean verify --file ./backend/simpleapi/pom.xml
-      
+
+      # Analyse de la qualité du code avec SonarCloud (token dans les secrets)
       - name: SonarCloud analysis
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=devops-simpleapi_simpleapi -Dsonar.organization=devops-simpleapi -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=${{ secrets.SONAR_TOKEN }} --file ./backend/simpleapi/pom.xml
 
-
-  # define job to build and publish docker image
+  # Job 2 : construire et publier les images Docker avec leurs tags de version
   build-and-push-docker-image:
+    # Ne démarre que si les tests ont réussi
     needs: test-backend
-    # run only when code is compiling and tests are passing
     runs-on: ubuntu-24.04
 
-    # steps to perform in job
+    # Publier seulement depuis main ou un tag de version 
+    env:
+      PUSH: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Connexion à Docker Hub avec les secrets GitHub
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+
+      - name: Docker metadata backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=semver,pattern={{version}}
 
       - name: Build image and push backend
         uses: docker/build-push-action@v6
         with:
-          # relative path to the place where source code with Dockerfile is located
           context: ./backend/simpleapi
-          # Note: tags has to be all lower-case
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
-          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          push: ${{ env.PUSH }}
 
-      # Build de l'image de la base de données
+      - name: Docker metadata database
+        id: meta-database
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=semver,pattern={{version}}
+
       - name: Build image and push database
         uses: docker/build-push-action@v6
         with:
           context: ./database
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
-          push: ${{ github.ref == 'refs/heads/main' }}
-          
-      # Build de l'image du serveur HTTP (reverse proxy)
+          tags: ${{ steps.meta-database.outputs.tags }}
+          labels: ${{ steps.meta-database.outputs.labels }}
+          push: ${{ env.PUSH }}
+
+
+      - name: Docker metadata httpd
+        id: meta-httpd
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=semver,pattern={{version}}
+
       - name: Build image and push httpd
         uses: docker/build-push-action@v6
         with:
           context: ./http-server
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
-          push: ${{ github.ref == 'refs/heads/main' }}
-  
-  
+          tags: ${{ steps.meta-httpd.outputs.tags }}
+          labels: ${{ steps.meta-httpd.outputs.labels }}
+          push: ${{ env.PUSH }}
