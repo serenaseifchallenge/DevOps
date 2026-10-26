@@ -9,3 +9,4 @@ postgres_password: pwd
 db_container: database
 app_container: simple-api
 proxy_container: httpd
+front_container: front

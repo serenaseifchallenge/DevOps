@@ -108,10 +108,26 @@ jobs:
           tags: ${{ steps.meta-httpd.outputs.tags }}
           labels: ${{ steps.meta-httpd.outputs.labels }}
           push: ${{ env.PUSH }}
+
+      - name: Docker metadata front
+        id: meta-front
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-front
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=semver,pattern={{version}}
+
+      - name: Build image and push front
+        uses: docker/build-push-action@v6
+        with:
+          context: ./front
+          tags: ${{ steps.meta-front.outputs.tags }}
+          labels: ${{ steps.meta-front.outputs.labels }}
+          push: ${{ env.PUSH }}
   deploy:
-   
     needs: build-and-push-docker-image
-    
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
 

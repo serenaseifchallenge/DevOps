@@ -8,6 +8,7 @@
     env:
       BACKEND_HOST: "{{ app_container }}"
       BACKEND_PORT: "8080"
+      FRONT_HOST: "{{ front_container }}"
     ports:
       - "80:80"
     networks:

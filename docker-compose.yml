@@ -33,6 +33,13 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+  
+  front:
+    build: ./front
+    container_name: front
+    networks:
+      - app-network
+    restart: unless-stopped
 
   httpd:
     build: ./http-server
@@ -40,12 +47,14 @@ services:
     environment:
       BACKEND_HOST: ${BACKEND_HOST}
       BACKEND_PORT: ${BACKEND_PORT}
+      FRONT_HOST: front
     ports:
       - "80:80"
     networks:
       - app-network
     depends_on:
       - backend
+      - front
     restart: unless-stopped
 
 networks:
