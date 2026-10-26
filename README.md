@@ -246,3 +246,69 @@ Les publier sur Docker Hub permet de :
 Bonus TP2 : 
 
 Proteger la branche main
+
+# TP3 
+
+3-1 Document your inventory and base commands 
+
+fichier yaml :
+
+- `all` : le groupe racine, qui contient tous les serveurs.
+- `vars` : variables communes à tous les serveurs.
+  - `ansible_user` : l'utilisateur SSH (`admin`, utilisateur par défaut sur Debian).
+  - `ansible_ssh_private_key_file` : le chemin de la clé privée. On n'a plus besoin de passer `-u` et `--private-key` à chaque commande.
+- `children` → `prod` : un groupe de serveurs. On peut créer plusieurs groupes (`prod`, `staging`, `database`…) pour cibler des machines selon leur rôle.
+- `hosts` : la liste des serveurs du groupe
+
+commandes : 
+
+ansible all -i inventories/setup.yml -m ping : Vérifie que le serveur est joignable et qu'Ansible peut s'y authentifier (réponse `pong`) 
+
+ansible all -i inventories/setup.yml -m setup -a "filter=ansible_distribution*" : Récupère les facts liés à la distribution du serveur (Les facts sont des informations découvertes automatiquement par Ansible sur le serveur (système, version, IP, mémoire…), préfixées par ansible_. Le module `setup` permet de les afficher.)
+
+ansible all -i inventories/setup.yml -m apt -a "name=apache2 state=absent" --become : Désinstalle Apache
+
+
+3-2 Document your playbook
+
+```
+ansible/
+├── inventories/setup.yml     # inventaire (serveur, utilisateur, clé)
+├── playbook.yml              # playbook principal : appelle les rôles
+└── roles/
+    └── docker/
+        ├── tasks/main.yml    # tâches d'installation de Docker
+        └── handlers/main.yml 
+```
+
+Playbook :
+
+- hosts: all : s'applique à tous les serveurs de l'inventaire.
+- gather_facts: true` : récupère les facts du serveur. 
+- become: true : toutes les tâches s'exécutent en root, ce qui est nécessaire pour installer des paquets.
+- roles : la liste des rôles à appliquer, dans l'ordre. Le playbook reste court et lisible : chaque rôle contient la logique d'une partie de l'infrastructure.
+
+Install required packages : installe les prérequis 
+Create keyrings directory : crée `/etc/apt/keyrings` 
+Add Docker GPG key : télécharge la clé qui authentifie les paquets Docker 
+Add Docker APT repository :  ajoute le dépôt Docker correspondant à la version de Debian (fact `distribution_release`) 
+Install Docker : installe `docker-ce` 
+Install Python3 and pip3 : installe Python et pip 
+Install Docker SDK for Python : installe le SDK Docker dans un environnement virtuel `/opt/docker_venv`, nécessaire aux modules `docker_container` et `docker_network` 
+Make sure Docker is running : s'assure que le service Docker est démarré 
+
+
+3-3 Document your docker_container tasks configuration.
+
+- Chaque partie de l’application a son propre rôle Ansible : network, database, app et proxy.
+- Les conteneurs sont lancés avec le module community.docker.docker_container, à partir des images publiées sur Docker Hub par GitHub Actions
+- Les variables d'environnement sont centralisées dans var_env/all.yml, chargé dans le playbook avec vars_files.
+- Le réseau app-network est créé avec le module docker_network. Les conteneurs s’y retrouvent par leur nom.
+- database : conteneur PostgreSQL, configuré par variables d’environnement (POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD), avec un volume db-data pour garder les données.
+- app : conteneur de l’API Spring Boot, qui reçoit les variables de connexion à la base lues par application.yml.
+- proxy : conteneur Apache, qui reçoit l’adresse du backend. C’est le seul conteneur exposé, sur le port 80.
+
+Le playbook est séparé en deux parties : l’installation de Docker utilise le Python du système, et le déploiement utilise le Python du venv /opt/docker_venv, qui contient le SDK Docker (ansible_python_interpreter).
+
+Les rôles s’exécutent dans l’ordre réseau → base → API → proxy, car chacun dépend du précédent.
+Seul le proxy est accessible depuis Internet. La base et l’API restent internes au réseau Docker.

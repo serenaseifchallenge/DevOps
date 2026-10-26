@@ -108,3 +108,31 @@ jobs:
           tags: ${{ steps.meta-httpd.outputs.tags }}
           labels: ${{ steps.meta-httpd.outputs.labels }}
           push: ${{ env.PUSH }}
+  deploy:
+   
+    needs: build-and-push-docker-image
+    
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+
+    steps:
+    
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+   
+      - name: Install Ansible
+        run: pipx install --include-deps ansible
+
+   
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/takima_key
+          chmod 600 ~/.ssh/takima_key
+          ssh-keyscan -H serena.seif.takima.school >> ~/.ssh/known_hosts
+
+     
+      - name: Deploy with Ansible
+        working-directory: ./ansible
+        run: ansible-playbook -i inventories/setup.yml playbook.yml -e ansible_ssh_private_key_file=$HOME/.ssh/takima_key

@@ -1,0 +1,8 @@
+all:
+  vars:
+    ansible_user: admin
+    ansible_ssh_private_key_file: /home/serena/.ssh/takima_key
+  children:
+    prod:
+      hosts:
+        serena.seif.takima.school:

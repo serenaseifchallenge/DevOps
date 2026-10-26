@@ -1,0 +1,14 @@
+- name: Run HTTPD
+  community.docker.docker_container:
+    name: "{{ proxy_container }}"
+    image: "{{ dockerhub_user }}/tp-devops-httpd:latest"
+    pull: true
+    state: started
+    restart_policy: unless-stopped
+    env:
+      BACKEND_HOST: "{{ app_container }}"
+      BACKEND_PORT: "8080"
+    ports:
+      - "80:80"
+    networks:
+      - name: "{{ docker_network }}"

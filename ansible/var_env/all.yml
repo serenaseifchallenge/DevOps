@@ -1,0 +1,11 @@
+dockerhub_user: serenaseifchallenge
+docker_network: app-network
+
+
+postgres_db: db
+postgres_user: usr
+postgres_password: pwd
+
+db_container: database
+app_container: simple-api
+proxy_container: httpd
