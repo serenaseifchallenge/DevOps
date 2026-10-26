@@ -246,3 +246,25 @@ Les publier sur Docker Hub permet de :
 Bonus TP2 : 
 
 Proteger la branche main
+
+# TP3 
+
+3-1 Document your inventory and base commands 
+
+fichier yaml :
+
+- `all` : le groupe racine, qui contient tous les serveurs.
+- `vars` : variables communes à tous les serveurs.
+  - `ansible_user` : l'utilisateur SSH (`admin`, utilisateur par défaut sur Debian).
+  - `ansible_ssh_private_key_file` : le chemin de la clé privée. On n'a plus besoin de passer `-u` et `--private-key` à chaque commande.
+- `children` → `prod` : un groupe de serveurs. On peut créer plusieurs groupes (`prod`, `staging`, `database`…) pour cibler des machines selon leur rôle.
+- `hosts` : la liste des serveurs du groupe
+
+commandes : 
+
+ansible all -i inventories/setup.yml -m ping : Vérifie que le serveur est joignable et qu'Ansible peut s'y authentifier (réponse `pong`) 
+
+ansible all -i inventories/setup.yml -m setup -a "filter=ansible_distribution*" : Récupère les facts liés à la distribution du serveur (Les facts sont des informations découvertes automatiquement par Ansible sur le serveur (système, version, IP, mémoire…), préfixées par ansible_. Le module `setup` permet de les afficher.)
+
+ansible all -i inventories/setup.yml -m apt -a "name=apache2 state=absent" --become : Désinstalle Apache
+
