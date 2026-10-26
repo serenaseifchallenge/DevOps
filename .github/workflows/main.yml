@@ -149,6 +149,11 @@ jobs:
           ssh-keyscan -H serena.seif.takima.school >> ~/.ssh/known_hosts
 
      
+      - name: Setup Ansible Vault password
+        run: |
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > ~/.vault_pass
+          chmod 600 ~/.vault_pass
+
       - name: Deploy with Ansible
         working-directory: ./ansible
-        run: ansible-playbook -i inventories/setup.yml playbook.yml -e ansible_ssh_private_key_file=$HOME/.ssh/takima_key
+        run: ansible-playbook -i inventories/setup.yml playbook.yml -e ansible_ssh_private_key_file=$HOME/.ssh/takima_key --vault-password-file ~/.vault_pass

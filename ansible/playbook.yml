@@ -9,6 +9,7 @@
   become: true
   vars_files:
     - var_env/all.yml
+    - var_env/secrets.yml
   vars:
     ansible_python_interpreter: /opt/docker_venv/bin/python
   roles:
